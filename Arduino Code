@@ -1,0 +1,63 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
+#define OLED_RESET    -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define NTC_PIN A0     //  for NTC Thermistor
+#define POT_PIN A1     // for Potentiometer
+#define RELAY_PIN 7   
+
+#define SETPOINT_MIN 20  
+#define SETPOINT_MAX 100 
+
+void setup() {
+  pinMode(NTC_PIN, INPUT);
+  pinMode(POT_PIN, INPUT);
+  pinMode(RELAY_PIN, OUTPUT);
+  int Vo;
+  float R1 = 100000;
+  float logR2, R2, T, Tc;
+  float c1 = 1.009249522e-03, c2 = 2.378405444e-04, c3 = 2.019202697e-07;
+
+  display.clearDisplay();
+  display.display();
+  
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+}
+
+void loop() {
+  
+  Vo = analogRead(NTC_PIN);
+  float resistance = R1 * (1023.0 / (float)Vo - 1.0); 
+  logR2 = log(resistance);
+  T = (1.0 / (c1 + c2*logR2 + c3*logR2*logR2*logR2));
+  Tc = T - 273.15;
+
+  int setpoint = map(analogRead(POT_PIN), 0, 1023, SETPOINT_MIN, SETPOINT_MAX);
+
+  // Display 
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.print("Temp: ");
+  display.print(temperature);
+  display.println(" C");
+  display.print("Setpoint: ");
+  display.print(setpoint);
+  display.println(" C");
+  display.display();
+
+  // Control relay 
+  if (temperature < setpoint) {
+    digitalWrite(RELAY_PIN, HIGH); 
+  } else {
+    digitalWrite(RELAY_PIN, LOW); 
+  }
+
+  delay(1000); 
+}
